@@ -36,11 +36,17 @@ data Did
 
 data Game = Game
   { _locEdges :: Map.Map Loc [Loc]
+  , _locAttrs :: Map.Map Loc LocAttr
   , _curLoc :: Loc
   , _hasFood :: Bool
   , _whereIsFood :: Loc
-  }
+  } deriving (Show, Eq)
 
+data LocAttr = LocAttr
+  { _locAttrInfo :: Text
+  } deriving (Show, Eq)
+
+baseEdgeCount :: Int
 baseEdgeCount = 30
 
 genEdges :: [Loc] -> IO (Map.Map Loc [Loc])
@@ -49,6 +55,14 @@ genEdges locs = do
   return $ foldr (\(indexA, indexB) edges -> link indexA indexB edges) emptyEdges pairs
   where
     emptyEdges = Map.fromList $ map (\loc -> (loc, [])) locs
+
+genLocAttrs :: [Loc] -> IO (Map.Map Loc LocAttr)
+genLocAttrs locs = return defAttrs
+  where
+    defAttrs = Map.fromList $ map (\loc -> (loc, defAttr)) locs
+    defAttr = LocAttr
+      { _locAttrInfo = "it exists..."
+      }
 
 link :: Int -> Int -> Map.Map Loc [Loc] -> Map.Map Loc [Loc]
 link indexOffsetA indexOffsetB edges = insert locA locB (insert locB locA edges)
@@ -87,26 +101,30 @@ nearbyLocs g = _locEdges g Map.! _curLoc g
 showLocs :: [Loc] -> Text
 showLocs locs = mconcat $ intersperse " " $ map showLoc locs
 
-move :: Game -> Loc -> IO (Game, Did)
+move :: Game -> Loc -> IO (Game, [Did])
 move g loc = do
   let hadFood = _hasFood g
   let g' = g
         { _curLoc = loc
         , _hasFood = hadFood || (loc == _whereIsFood g)
         }
-  let did
-        | loc == startLoc && hadFood = DidWin
-        | (not hadFood) && _hasFood g' = DidText $ "you found food!\nnearby locations: " `mappend` showLocs (nearbyLocs g')
-        | otherwise = DidText $ "you stepped.\nnearby locations: " `mappend` showLocs (nearbyLocs g')
-  return (g', did) 
+  let foundFood = DidText "you found food!"
+  let stepped = DidText "you stepped."
+  let locInfo = DidText $ "[" `mappend` showLoc loc `mappend` "]: " `mappend` (_locAttrInfo $ _locAttrs g Map.! loc)
+  let nearby = DidText $ "nearby locations: " `mappend` showLocs (nearbyLocs g')
+  let dids
+        | loc == startLoc && hadFood = [stepped, DidWin]
+        | (not hadFood) && _hasFood g' = [stepped, locInfo, foundFood, nearby]
+        | otherwise = [stepped, locInfo, nearby]
+  return (g', dids)
 
-stepGame :: Game -> Act -> IO (Game, Did)
+stepGame :: Game -> Act -> IO (Game, [Did])
 stepGame g (ActMove loc) = do
   let nearbys = nearbyLocs g
   if elem loc nearbys
     then move g loc
     else do
-      return (g, DidText "you can't go that way")
+      return (g, [DidText "you can't go that way"])
 
 start :: Game -> IO ()
 start game = do
@@ -125,9 +143,9 @@ loop game = do
     Just cmd ->
       case cmd of
         CmdAct act -> do
-          (game', did) <- stepGame game act
-          done <- doDid did
-          unless done (loop game')
+          (game', dids) <- stepGame game act
+          dones <- sequence $ fmap doDid dids
+          unless (and dones) (loop game')
         CmdQuit -> do
           putStrLn "bye!"
 
@@ -321,16 +339,27 @@ locNouns =
   , "spot"
   , "lot"
   , "property"
+  , "cabin"
+  , "pool-house"
+  , "bar"
+  , "rest-stop"
+  , "park"
+  , "gazebo"
+  , "tarp"
+  , "reservation"
   ]
 
 run :: IO ()
 run = do
   locs <- startLocs
   whereIsFood <- chooseRandomly locs
-  edges <- genEdges (startLoc : locs)
+  let allLocs = startLoc : locs
+  edges <- genEdges allLocs
+  locAttrs <- genLocAttrs allLocs
   let game = Game
         { _curLoc = startLoc
         , _locEdges = edges
+        , _locAttrs = locAttrs
         , _hasFood = False
         , _whereIsFood = whereIsFood
         }
