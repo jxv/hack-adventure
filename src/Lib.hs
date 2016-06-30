@@ -27,18 +27,8 @@ data Opt
 
 data Pack = Pack
 
-data Loc
-  = LocBasement
-  | LocAttic
-  | LocStaircase
-  | LocDiningRoom
-  | LocLivingRoom
-  | LocOffice
-  | LocGreenRoom
-  | LocBlueRoom
-  | LocRedRoom
-  | LocDarkRoom
-  deriving (Show, Eq, Ord, Enum)
+newtype Loc = Loc Text
+  deriving (Show, Eq, Ord)
 
 data Item = Item
 
@@ -58,16 +48,9 @@ data Game = Game
   }
 
 defLocEdges = Map.fromList
-  [ (LocBasement, [LocDarkRoom])
-  , (LocAttic, [LocStaircase])
-  , (LocStaircase, [LocAttic, LocDiningRoom])
-  , (LocDiningRoom, [LocStaircase, LocLivingRoom])
-  , (LocLivingRoom, [LocDiningRoom, LocDarkRoom])
-  , (LocOffice, [LocGreenRoom, LocBlueRoom])
-  , (LocGreenRoom, [LocOffice, LocRedRoom])
-  , (LocBlueRoom, [LocOffice, LocGreenRoom])
-  , (LocRedRoom, [LocDarkRoom, LocGreenRoom])
-  , (LocDarkRoom, [LocBasement, LocRedRoom, LocLivingRoom])
+  [ (Loc "basement", [Loc "dark-room"])
+  , (Loc "dark-room", [Loc "basement", Loc "red-room"])
+  , (Loc "red-room", [Loc "dark-room"])
   ]
 
 runPar :: Parser a -> Text -> Maybe a
@@ -76,37 +59,20 @@ runPar par text = maybeResult $ parse par text
 tryCvt :: Text -> a -> Parser a
 tryCvt text loc = try $ asciiCI text *> pure loc
 
-cmdPar :: Parser Cmd
-cmdPar = (CmdAct <$> movePar) <|> (tryCvt "quit" CmdQuit)
+cmdPar :: [Loc] -> Parser Cmd
+cmdPar locs = (CmdAct <$> movePar locs) <|> (tryCvt "quit" CmdQuit)
 
-movePar :: Parser Act
-movePar = asciiCI "move" *> many1 space *> (ActMove <$> locPar)
+movePar :: [Loc] -> Parser Act
+movePar locs = asciiCI "move" *> many1 space *> (ActMove <$> locsPar locs)
 
-locPar :: Parser Loc
-locPar =
-  (tryCvt "basement" LocBasement) <|>
-  (tryCvt "attic" LocAttic) <|>
-  (tryCvt "staircase" LocStaircase) <|>
-  (tryCvt "dining-room" LocDiningRoom) <|>
-  (tryCvt "living-room" LocLivingRoom) <|>
-  (tryCvt "office" LocOffice) <|>
-  (tryCvt "blue-room" LocBlueRoom) <|>
-  (tryCvt "red-room" LocRedRoom) <|>
-  (tryCvt "green-room" LocGreenRoom) <|>
-  (tryCvt "dark-room" LocDarkRoom)
+locPar :: Loc -> Parser Loc
+locPar loc@(Loc locText) = tryCvt locText loc
+
+locsPar :: [Loc] -> Parser Loc
+locsPar locs = choice (map locPar locs)
 
 showLoc :: Loc -> Text
-showLoc = \case
-  LocBasement -> "basement"
-  LocAttic -> "attic"
-  LocStaircase -> "staircase"
-  LocDiningRoom -> "dining-room"
-  LocLivingRoom -> "living-room"
-  LocOffice -> "office"
-  LocGreenRoom -> "green-room"
-  LocBlueRoom -> "blue-room"
-  LocRedRoom -> "red-room"
-  LocDarkRoom -> "dark-room"
+showLoc (Loc locText) = locText
 
 nearbyLocs :: Game -> [Loc]
 nearbyLocs g = _locEdges g Map.! _curLoc g
@@ -122,7 +88,7 @@ move g loc = do
         , _hasFood = hadFood || (loc == _whereIsFood g)
         }
   let did
-        | loc == LocBasement && hadFood = DidWin
+        | loc == (Loc "basement") && hadFood = DidWin
         | (not hadFood) && _hasFood g' = DidText $ "you found food!\nnearby locations:" `mappend` showLocs (nearbyLocs g')
         | otherwise = DidText $ "you stepped.\nnearby locations: " `mappend` showLocs (nearbyLocs g')
   return (g', did) 
@@ -138,7 +104,7 @@ step g (ActMove loc) = do
 loop :: Game -> IO ()
 loop game = do
   input <- pack <$> getLine
-  let mCmd = runPar cmdPar input
+  let mCmd = runPar (cmdPar . Map.keys $ _locEdges game) input
   case mCmd of
     Nothing -> do
       putStrLn "bad input"
@@ -167,7 +133,7 @@ doDid DidWin = do
 randomFoodLoc :: IO Loc
 randomFoodLoc = do
   int <- randomIO
-  let choices = [LocOffice, LocBlueRoom, LocGreenRoom, LocAttic]
+  let choices = [Loc "red-room"]
   return $ choices !! (int `mod` (length choices))
 
 run :: IO ()
@@ -177,7 +143,7 @@ run = do
   whereIsFood <- randomFoodLoc
   let game = Game
         defLocEdges
-        LocBasement
+        (Loc "basement")
         False
         whereIsFood
   loop game

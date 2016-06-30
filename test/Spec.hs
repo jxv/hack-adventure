@@ -6,9 +6,9 @@ main = hspec $ do
   describe "parse" $ do
     it "basement" $ do
       shouldBe
-        (runPar locPar "basement")
-        (Just LocBasement)
+        (runPar (locsPar [Loc "basement"]) "basement")
+        (Just (Loc "basement"))
     it "move" $ do
       shouldBe
-        (runPar cmdPar "move basement")
-        (Just $ CmdAct (ActMove LocBasement))
+        (runPar (cmdPar [Loc "basement"]) "move basement")
+        (Just $ CmdAct (ActMove (Loc "basement")))
