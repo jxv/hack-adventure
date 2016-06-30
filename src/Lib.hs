@@ -61,11 +61,11 @@ defLocEdges = Map.fromList
   [ (LocBasement, [LocDarkRoom])
   , (LocAttic, [LocStaircase])
   , (LocStaircase, [LocAttic, LocDiningRoom])
-  , (LocDiningRoom, [LocDiningRoom, LocStaircase, LocLivingRoom])
+  , (LocDiningRoom, [LocStaircase, LocLivingRoom])
   , (LocLivingRoom, [LocDiningRoom, LocDarkRoom])
   , (LocOffice, [LocGreenRoom, LocBlueRoom])
   , (LocGreenRoom, [LocOffice, LocRedRoom])
-  , (LocBlueRoom, [LocBlueRoom, LocGreenRoom])
+  , (LocBlueRoom, [LocOffice, LocGreenRoom])
   , (LocRedRoom, [LocDarkRoom, LocGreenRoom])
   , (LocDarkRoom, [LocBasement, LocRedRoom, LocLivingRoom])
   ]
