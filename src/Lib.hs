@@ -120,7 +120,7 @@ loop game = do
         CmdAct act -> do
           (game', did) <- step game act
           done <- doDid did
-          unless done (loop game)
+          unless done (loop game')
         CmdQuit -> do
           putStrLn "bye!"
 
