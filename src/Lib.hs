@@ -181,7 +181,7 @@ randomLoc = do
   return $ Loc (adj `mappend` "-" `mappend` noun)
 
 locAdjectives :: [Text]
-locAdjectives =
+locAdjectives = nub
   [ "red"
   , "blue"
   , "green"
@@ -281,10 +281,17 @@ locAdjectives =
   , "unspoiled"
   , "pristine"
   , "interesting"
+  , "rusty"
+  , "low-quality"
+  , "mid-quality"
+  , "starchy"
+  , "pickled"
+  , "screeching"
+  , "misty"
   ]
 
 locNouns :: [Text]
-locNouns =
+locNouns = nub
   [ "room"
   , "foxhole"
   , "dungeon"
@@ -348,6 +355,8 @@ locNouns =
   , "gazebo"
   , "tarp"
   , "reservation"
+  , "alley"
+  , "valley"
   ]
 
 run :: IO ()
