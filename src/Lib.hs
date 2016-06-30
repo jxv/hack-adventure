@@ -10,6 +10,7 @@ import Data.Attoparsec.Text
 import Data.Text (Text, pack)
 import Data.Text.IO (putStrLn, putStr)
 import System.Random
+import Data.List
 
 data Cmd
   = CmdAct Act
@@ -59,14 +60,14 @@ data Game = Game
 defLocEdges = Map.fromList
   [ (LocBasement, [LocDarkRoom])
   , (LocAttic, [LocStaircase])
-  , (LocStaircase, [LocAttic])
-  , (LocDiningRoom, [])
-  , (LocLivingRoom, [])
-  , (LocOffice, [])
-  , (LocGreenRoom, [])
-  , (LocBlueRoom, [])
-  , (LocRedRoom, [LocDarkRoom])
-  , (LocDarkRoom, [LocBasement, LocRedRoom])
+  , (LocStaircase, [LocAttic, LocDiningRoom])
+  , (LocDiningRoom, [LocDiningRoom, LocStaircase, LocLivingRoom])
+  , (LocLivingRoom, [LocDiningRoom, LocDarkRoom])
+  , (LocOffice, [LocGreenRoom, LocBlueRoom])
+  , (LocGreenRoom, [LocOffice, LocRedRoom])
+  , (LocBlueRoom, [LocBlueRoom, LocGreenRoom])
+  , (LocRedRoom, [LocDarkRoom, LocGreenRoom])
+  , (LocDarkRoom, [LocBasement, LocRedRoom, LocLivingRoom])
   ]
 
 runPar :: Parser a -> Text -> Maybe a
@@ -94,16 +95,43 @@ locPar =
   (tryCvt "green-room" LocGreenRoom) <|>
   (tryCvt "dark-room" LocDarkRoom)
 
+showLoc :: Loc -> Text
+showLoc = \case
+  LocBasement -> "basement"
+  LocAttic -> "attic"
+  LocStaircase -> "staircase"
+  LocDiningRoom -> "dining-room"
+  LocLivingRoom -> "living-room"
+  LocOffice -> "office"
+  LocGreenRoom -> "green-room"
+  LocBlueRoom -> "blue-room"
+  LocRedRoom -> "red-room"
+  LocDarkRoom -> "dark-room"
+
 nearbyLocs :: Game -> [Loc]
 nearbyLocs g = _locEdges g Map.! _curLoc g
+
+showLocs :: [Loc] -> Text
+showLocs locs = mconcat $ intersperse " " $ map showLoc locs
+
+move :: Game -> Loc -> IO (Game, Did)
+move g loc = do
+  let hadFood = _hasFood g
+  let g' = g
+        { _curLoc = loc
+        , _hasFood = hadFood || (loc == _whereIsFood g)
+        }
+  let did
+        | loc == LocBasement && hadFood = DidWin
+        | (not hadFood) && _hasFood g' = DidText $ "you found food!\nnearby locations:" `mappend` showLocs (nearbyLocs g')
+        | otherwise = DidText $ "you stepped.\nnearby locations: " `mappend` showLocs (nearbyLocs g')
+  return (g', did) 
 
 step :: Game -> Act -> IO (Game, Did)
 step g (ActMove loc) = do
   let nearbys = nearbyLocs g
   if elem loc nearbys
-    then do
-      let g' = g { _curLoc = loc }
-      return (g', DidText "you stepped")
+    then move g loc
     else do
       return (g, DidText "you can't go that way")
 
@@ -144,6 +172,8 @@ randomFoodLoc = do
 
 run :: IO ()
 run = do
+  putStrLn "you're in the basement. find food and come back!"
+  putStrLn "hint: go into the dark-room"
   whereIsFood <- randomFoodLoc
   let game = Game
         defLocEdges
