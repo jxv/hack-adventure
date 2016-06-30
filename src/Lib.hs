@@ -4,11 +4,12 @@ module Lib where
 
 import Prelude hiding (putStrLn, putStr)
 import qualified Data.Map as Map
+import Data.Text (Text, pack)
+import Data.Text.IO (putStrLn, putStr)
+import Data.String (IsString)
 import Control.Monad
 import Control.Applicative
 import Data.Attoparsec.Text
-import Data.Text (Text, pack)
-import Data.Text.IO (putStrLn, putStr)
 import System.Random
 import Data.List
 
@@ -21,18 +22,11 @@ data Act
   = ActMove Loc
   deriving (Show, Eq)
 
-data Opt
-  = OptQuit
-  deriving (Show, Eq)
-
-data Pack = Pack
-
 newtype Loc = Loc Text
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, IsString)
 
-data Item = Item
-
-data Ch = Ch
+startLoc :: Loc
+startLoc = Loc "basement"
 
 data Did
   = DidText Text
@@ -47,11 +41,20 @@ data Game = Game
   , _whereIsFood :: Loc
   }
 
-defLocEdges = Map.fromList
-  [ (Loc "basement", [Loc "dark-room"])
-  , (Loc "dark-room", [Loc "basement", Loc "red-room"])
-  , (Loc "red-room", [Loc "dark-room"])
-  ]
+genEdges :: [Loc] -> IO (Map.Map Loc [Loc])
+genEdges locs = do
+  pairs <- sequence $ replicate 300 ((,) <$> randomIO <*> randomIO)
+  return $ foldr (\(indexA, indexB) edges -> link indexA indexB edges) emptyEdges pairs
+  where
+    emptyEdges = Map.fromList $ map (\loc -> (loc, [])) locs
+
+link :: Int -> Int -> Map.Map Loc [Loc] -> Map.Map Loc [Loc]
+link indexOffsetA indexOffsetB edges = insert locA locB (insert locB locA edges)
+  where
+    locA = pick indexOffsetA
+    locB = pick indexOffsetB
+    pick index = fst $ Map.elemAt (index `mod` Map.size edges) edges
+    insert to from uninsertedEdges = Map.alter (\(Just locs) -> Just (nub $ to : locs)) from uninsertedEdges
 
 runPar :: Parser a -> Text -> Maybe a
 runPar par text = maybeResult $ parse par text
@@ -88,18 +91,24 @@ move g loc = do
         , _hasFood = hadFood || (loc == _whereIsFood g)
         }
   let did
-        | loc == (Loc "basement") && hadFood = DidWin
-        | (not hadFood) && _hasFood g' = DidText $ "you found food!\nnearby locations:" `mappend` showLocs (nearbyLocs g')
+        | loc == startLoc && hadFood = DidWin
+        | (not hadFood) && _hasFood g' = DidText $ "you found food!\nnearby locations: " `mappend` showLocs (nearbyLocs g')
         | otherwise = DidText $ "you stepped.\nnearby locations: " `mappend` showLocs (nearbyLocs g')
   return (g', did) 
 
-step :: Game -> Act -> IO (Game, Did)
-step g (ActMove loc) = do
+stepGame :: Game -> Act -> IO (Game, Did)
+stepGame g (ActMove loc) = do
   let nearbys = nearbyLocs g
   if elem loc nearbys
     then move g loc
     else do
       return (g, DidText "you can't go that way")
+
+start :: Game -> IO ()
+start game = do
+  putStrLn "you're in the basement. find food and come back!"
+  putStrLn $ "nearby locations: " `mappend` showLocs (nearbyLocs game)
+  loop game
 
 loop :: Game -> IO ()
 loop game = do
@@ -107,12 +116,12 @@ loop game = do
   let mCmd = runPar (cmdPar . Map.keys $ _locEdges game) input
   case mCmd of
     Nothing -> do
-      putStrLn "bad input"
+      putStrLn "bad input :("
       loop game
     Just cmd ->
       case cmd of
         CmdAct act -> do
-          (game', did) <- step game act
+          (game', did) <- stepGame game act
           done <- doDid did
           unless done (loop game')
         CmdQuit -> do
@@ -123,28 +132,179 @@ doDid (DidText text) = do
   putStrLn text
   return False
 doDid (DidDied text) = do
-  putStr "Died: "
+  putStr "you died. "
   putStrLn text
   return True
 doDid DidWin = do
-  putStrLn "You win!"
+  putStrLn "you win!"
   return True
 
-randomFoodLoc :: IO Loc
-randomFoodLoc = do
-  int <- randomIO
-  let choices = [Loc "red-room"]
-  return $ choices !! (int `mod` (length choices))
+chooseRandomly :: [Loc] -> IO Loc
+chooseRandomly locs = randomIO >>= (return . flip roundRobin locs)
+
+startLocs :: IO [Loc]
+startLocs = nub <$> genRandomLocs 100
+
+genRandomLocs :: Int -> IO [Loc]
+genRandomLocs count = sequence $ replicate count randomLoc
+
+roundRobin :: Int -> [a] -> a
+roundRobin offset choices = choices !! (offset `mod` length choices)
+
+randomLoc :: IO Loc
+randomLoc = do
+  (adjOffset, nounOffset) <- (,) <$> randomIO <*> randomIO
+  let adj = roundRobin adjOffset locAdjectives
+  let noun = roundRobin nounOffset locNouns
+  return $ Loc (adj `mappend` "-" `mappend` noun)
+
+locAdjectives :: [Text]
+locAdjectives =
+  [ "red"
+  , "blue"
+  , "green"
+  , "orange"
+  , "dark"
+  , "silly"
+  , "light"
+  , "purple"
+  , "scary"
+  , "happy"
+  , "gloomy"
+  , "sketchy"
+  , "carpeted"
+  , "slippery"
+  , "drafty"
+  , "lofty"
+  , "ruined"
+  , "spacious"
+  , "doggy"
+  , "tiny"
+  , "baby"
+  , "little"
+  , "massive"
+  , "old-fashioned"
+  , "scared"
+  , "quiet"
+  , "lukewarm"
+  , "popular"
+  , "bitter"
+  , "thinking"
+  , "acid"
+  , "fishy"
+  , "extra"
+  , "main"
+  , "master"
+  , "mild"
+  , "sharp"
+  , "fancy"
+  , "subtle"
+  , "tangy"
+  , "wild"
+  , "local"
+  , "unusual"
+  , "moist"
+  , "wet"
+  , "arid"
+  , "dainty"
+  , "sour"
+  , "salty"
+  , "pungent"
+  , "natural"
+  , "other"
+  , "good"
+  , "great"
+  , "spicy"
+  , "wonderful"
+  , "mellow"
+  , "metallic"
+  , "new"
+  , "old"
+  , "magic"
+  , "bland"
+  , "amazing"
+  , "average"
+  , "normal"
+  , "typical"
+  , "above-average"
+  , "decent"
+  , "five-star"
+  , "squeaky"
+  , "slient"
+  , "noisy"
+  , "grand"
+  , "lazy"
+  , "shabby"
+  , "raggedy"
+  , "dull"
+  , "mushy"
+  , "worn-down"
+  , "mythic"
+  , "secret"
+  , "standard"
+  , "giant"
+  , "starry"
+  ]
+
+locNouns :: [Text]
+locNouns =
+  [ "room"
+  , "foxhole"
+  , "dungeon"
+  , "lobby"
+  , "clubhouse"
+  , "place"
+  , "avenue"
+  , "arena"
+  , "habor"
+  , "quarters"
+  , "chamber"
+  , "shed"
+  , "house"
+  , "shelter"
+  , "crib"
+  , "cardboard-box"
+  , "hole-in-the-wall"
+  , "hut"
+  , "lodge"
+  , "cottage"
+  , "campground"
+  , "street"
+  , "area"
+  , "corner"
+  , "territory"
+  , "post"
+  , "forest"
+  , "town"
+  , "villa"
+  , "land"
+  , "wasteland"
+  , "tavern"
+  , "workshop"
+  , "shoppe"
+  , "yard"
+  , "garden"
+  , "tent"
+  , "path"
+  , "road"
+  , "trail"
+  , "hill"
+  , "destination"
+  , "location"
+  , "spot"
+  , "hotel"
+  , "patch-of-land"
+  ]
 
 run :: IO ()
 run = do
-  putStrLn "you're in the basement. find food and come back!"
-  putStrLn "hint: go into the dark-room"
-  whereIsFood <- randomFoodLoc
+  locs <- startLocs
+  whereIsFood <- chooseRandomly locs
+  edges <- genEdges (startLoc : locs)
   let game = Game
-        defLocEdges
-        (Loc "basement")
-        False
-        whereIsFood
-  loop game
- 
+        { _curLoc = startLoc
+        , _locEdges = edges
+        , _hasFood = False
+        , _whereIsFood = whereIsFood
+        }
+  start game
