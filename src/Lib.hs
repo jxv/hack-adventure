@@ -56,7 +56,9 @@ link indexOffsetA indexOffsetB edges = insert locA locB (insert locB locA edges)
     locA = pick indexOffsetA
     locB = pick indexOffsetB
     pick index = fst $ Map.elemAt (index `mod` Map.size edges) edges
-    insert to from uninsertedEdges = Map.alter (\(Just locs) -> Just (nub $ to : locs)) from uninsertedEdges
+    insert to from uninsertedEdges
+      | to /= from = Map.alter (\(Just locs) -> Just (nub $ to : locs)) from uninsertedEdges
+      | otherwise = uninsertedEdges
 
 runPar :: Parser a -> Text -> Maybe a
 runPar par text = maybeResult $ parse par text
@@ -180,6 +182,8 @@ locAdjectives =
   , "lofty"
   , "ruined"
   , "spacious"
+  , "dodgy"
+  , "sealthy"
   , "doggy"
   , "tiny"
   , "baby"
@@ -246,6 +250,18 @@ locAdjectives =
   , "standard"
   , "giant"
   , "starry"
+  , "cold"
+  , "warm"
+  , "hot"
+  , "humid"
+  , "frozen"
+  , "sweet"
+  , "lovely"
+  , "glamorous"
+  , "busy"
+  , "idle"
+  , "unspoiled"
+  , "pristine"
   ]
 
 locNouns :: [Text]
@@ -275,7 +291,8 @@ locNouns =
   , "area"
   , "corner"
   , "territory"
-  , "post"
+  , "post-office"
+  , "office"
   , "forest"
   , "town"
   , "villa"
@@ -296,6 +313,14 @@ locNouns =
   , "spot"
   , "hotel"
   , "patch-of-land"
+  , "country-club"
+  , "swamp"
+  , "condo"
+  , "shack"
+  , "terrain"
+  , "spot"
+  , "lot"
+  , "property"
   ]
 
 run :: IO ()
