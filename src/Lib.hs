@@ -41,9 +41,11 @@ data Game = Game
   , _whereIsFood :: Loc
   }
 
+baseEdgeCount = 30
+
 genEdges :: [Loc] -> IO (Map.Map Loc [Loc])
 genEdges locs = do
-  pairs <- sequence $ replicate 300 ((,) <$> randomIO <*> randomIO)
+  pairs <- sequence $ replicate (baseEdgeCount * 2) ((,) <$> randomIO <*> randomIO)
   return $ foldr (\(indexA, indexB) edges -> link indexA indexB edges) emptyEdges pairs
   where
     emptyEdges = Map.fromList $ map (\loc -> (loc, [])) locs
@@ -143,7 +145,7 @@ chooseRandomly :: [Loc] -> IO Loc
 chooseRandomly locs = randomIO >>= (return . flip roundRobin locs)
 
 startLocs :: IO [Loc]
-startLocs = nub <$> genRandomLocs 100
+startLocs = nub <$> genRandomLocs baseEdgeCount
 
 genRandomLocs :: Int -> IO [Loc]
 genRandomLocs count = sequence $ replicate count randomLoc
