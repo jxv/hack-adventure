@@ -9,6 +9,7 @@ import Control.Applicative
 import Data.Attoparsec.Text
 import Data.Text (Text, pack)
 import Data.Text.IO (putStrLn, putStr)
+import System.Random
 
 data Cmd
   = CmdAct Act
@@ -36,7 +37,7 @@ data Loc
   | LocBlueRoom
   | LocRedRoom
   | LocDarkRoom
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Enum)
 
 data Item = Item
 
@@ -51,6 +52,8 @@ data Did
 data Game = Game
   { _locEdges :: Map.Map Loc [Loc]
   , _curLoc :: Loc
+  , _hasFood :: Bool
+  , _whereIsFood :: Loc
   }
 
 defLocEdges = Map.fromList
@@ -91,9 +94,18 @@ locPar =
   (tryCvt "green-room" LocGreenRoom) <|>
   (tryCvt "dark-room" LocDarkRoom)
 
+nearbyLocs :: Game -> [Loc]
+nearbyLocs g = _locEdges g Map.! _curLoc g
+
 step :: Game -> Act -> IO (Game, Did)
-step game action = do
-  return (game, DidText "did")
+step g (ActMove loc) = do
+  let nearbys = nearbyLocs g
+  if elem loc nearbys
+    then do
+      let g' = g { _curLoc = loc }
+      return (g', DidText "you stepped")
+    else do
+      return (g, DidText "you can't go that way")
 
 loop :: Game -> IO ()
 loop game = do
@@ -124,10 +136,19 @@ doDid DidWin = do
   putStrLn "You win!"
   return True
 
+randomFoodLoc :: IO Loc
+randomFoodLoc = do
+  int <- randomIO
+  let choices = [LocOffice, LocBlueRoom, LocGreenRoom, LocAttic]
+  return $ choices !! (int `mod` (length choices))
+
 run :: IO ()
 run = do
+  whereIsFood <- randomFoodLoc
   let game = Game
         defLocEdges
         LocBasement
+        False
+        whereIsFood
   loop game
  
