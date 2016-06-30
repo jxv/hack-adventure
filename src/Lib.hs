@@ -280,6 +280,7 @@ locAdjectives =
   , "idle"
   , "unspoiled"
   , "pristine"
+  , "interesting"
   ]
 
 locNouns :: [Text]
