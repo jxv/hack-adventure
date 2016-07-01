@@ -296,6 +296,10 @@ locAdjectives = nub
   , "bloody"
   , "ancient"
   , "outdoor"
+  , "charming"
+  , "private"
+  , "public"
+  , "temporary"
   ]
 
 locNouns :: [Text]
