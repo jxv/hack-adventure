@@ -290,6 +290,12 @@ locAdjectives = nub
   , "misty"
   , "abandoned"
   , "robust"
+  , "last"
+  , "first"
+  , "glitter"
+  , "bloody"
+  , "ancient"
+  , "outdoor"
   ]
 
 locNouns :: [Text]
@@ -365,6 +371,9 @@ locNouns = nub
   , "ranch"
   , "bay"
   , "sewer"
+  , "fair"
+  , "mall"
+  , "market"
   ]
 
 run :: IO ()
