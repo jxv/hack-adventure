@@ -300,6 +300,9 @@ locAdjectives = nub
   , "private"
   , "public"
   , "temporary"
+  , "dank"
+  , "janky"
+  , "hacky"
   ]
 
 locNouns :: [Text]
