@@ -362,6 +362,7 @@ locNouns = nub
   , "cave"
   , "mine"
   , "mineshaft"
+  , "ranch"
   ]
 
 run :: IO ()
