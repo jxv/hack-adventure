@@ -47,7 +47,7 @@ data LocAttr = LocAttr
   } deriving (Show, Eq)
 
 baseEdgeCount :: Int
-baseEdgeCount = 30
+baseEdgeCount = 100
 
 genEdges :: [Loc] -> IO (Map.Map Loc [Loc])
 genEdges locs = do
@@ -288,6 +288,8 @@ locAdjectives = nub
   , "pickled"
   , "screeching"
   , "misty"
+  , "abandoned"
+  , "robust"
   ]
 
 locNouns :: [Text]
@@ -357,6 +359,9 @@ locNouns = nub
   , "reservation"
   , "alley"
   , "valley"
+  , "cave"
+  , "mine"
+  , "mineshaft"
   ]
 
 run :: IO ()
