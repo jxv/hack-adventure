@@ -9,7 +9,7 @@
       ((locations (start-locations))
        (where-is-food (choose-randomly locations))
        (all-locations (cons start-location locations))
-       (location-edges (generate-edges all-locations))
+       (location-edges (generate-location-edges all-locations))
        (location-attributes (generate-location-attributes)))
     (game location-edges location-attributes start-location #f where-is-food)))
 
@@ -20,7 +20,32 @@
 (define (random-element lst)
   (list-ref lst (random (length lst))))
 
-(define (generate-edges locations) #f)
+(define (generate-location-edges locations)
+  (let*
+      ((random-pair (lambda () (cons (random-element locations) (random-element locations))))
+       (pairs (replicate-call (* 2 base-edge-count) random-pair))
+       (empty-edges (eval (cons hash (skip locations ''())))))
+    (foldr (lambda (indices edges) (link (car indices)
+                                         (cdr indices)
+                                         edges))
+           empty-edges pairs)))
+
+(define (skip lst element)
+  (if (null? lst)
+      '()
+      (cons (car lst) (cons element (skip (cdr lst) element)))))
+
+(define (link index-a index-b edges)
+  (let*
+      ((edges0 (hash-set edges  index-a (cons index-b (hash-ref edges index-a))))
+       (edges1 (hash-set edges0 index-b (cons index-a (hash-ref edges index-b)))))
+    edges1))
+
+(define (replicate-call count f)
+  (if (> count 0)
+      (cons (f) (replicate-call (- count 1) f))
+      '()))
+
 (define (generate-location-attributes) #f)
 
 (define (intersperse element lst)
