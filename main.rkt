@@ -2,25 +2,50 @@
 
 (require srfi/13)
 
+(struct game (location-edges location-attributes current-location has-food where-is-food))
+
+(define (make-game)
+  (let*
+      ((locations (start-locations))
+       (where-is-food (choose-randomly locations))
+       (all-locations (cons start-location locations))
+       (location-edges (generate-edges all-locations))
+       (location-attributes (generate-location-attributes)))
+    (game location-edges location-attributes start-location #f where-is-food)))
+
+
+(define (start-locations) (generate-random-locations base-edge-count))
+(define (choose-randomly locations) #f)
+(define (generate-edges locations) #f)
+(define (generate-location-attributes) #f)
+
 (define (intersperse element lst)
   (if (and (not (null? lst)) (not (null? (cdr lst))))
       (cons (car lst)
             (cons element (intersperse element (cdr lst))))
       lst))
 
-(define (show-loc loc) #f)
+(define (show-location location) #f)
 
-(define (show-locs locs)
-  (string-concatenate (intersperse " " (map show-loc locs))))
+(define (show-locations locations)
+  (string-concatenate (intersperse " " (map show-location locations))))
 
-(define (nearby-locs game) #f)
+(define (nearby-locations game) #f)
 (define (loop game) #f)
 
 (define (start game)
   (begin
     (display "you're in the basement. find food and come back!\n")
-    (display (string-concatenate (list "nearby locations: " (show-locs (nearby-locs game)))))
+    (display (string-concatenate (list "nearby locations: " (show-locations (nearby-locations game)))))
     (loop game)))
+
+(define (generate-random-locations count)
+  (let*
+      ((locations (generate-locations))
+       (locations-length (length locations)))
+    (if (> count locations-length)
+        (append locations (generate-random-locations (- count locations-length)))
+        (take locations count))))
 
 (define (generate-locations)
   (let* ((location-length (min (length location-adjectives) (length location-nouns)))
@@ -28,6 +53,10 @@
     (map (lambda (adjective noun) (string-concatenate (list adjective "-" noun)))
        (take-some location-adjectives)
        (take-some location-nouns))))
+
+(define base-edge-count 40)
+
+(define start-location "basement")
 
 (define location-adjectives
   '("red"
