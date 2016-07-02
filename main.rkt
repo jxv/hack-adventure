@@ -2,6 +2,26 @@
 
 (require srfi/13)
 
+(define (intersperse element lst)
+  (if (and (not (null? lst)) (not (null? (cdr lst))))
+      (cons (car lst)
+            (cons element (intersperse element (cdr lst))))
+      lst))
+
+(define (show-loc loc) #f)
+
+(define (show-locs locs)
+  (string-concatenate (intersperse " " (map show-loc locs))))
+
+(define (nearby-locs game) #f)
+(define (loop game) #f)
+
+(define (start game)
+  (begin
+    (display "you're in the basement. find food and come back!\n")
+    (display (string-concatenate (list "nearby locations: " (show-locs (nearby-locs game)))))
+    (loop game)))
+
 (define (generate-locations)
   (let* ((location-length (min (length location-adjectives) (length location-nouns)))
          (take-some (lambda (lst) (take (shuffle lst) location-length))))
