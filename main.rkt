@@ -15,7 +15,11 @@
 
 
 (define (start-locations) (generate-random-locations base-edge-count))
-(define (choose-randomly locations) #f)
+(define (choose-randomly locations) (random-element locations))
+
+(define (random-element lst)
+  (list-ref lst (random (length lst))))
+
 (define (generate-edges locations) #f)
 (define (generate-location-attributes) #f)
 
