@@ -3,6 +3,7 @@
 (require srfi/13)
 
 (struct game (location-edges location-attributes current-location has-food where-is-food))
+(struct location-attribute (info))
 
 (define (make-game)
   (let*
@@ -10,9 +11,8 @@
        (where-is-food (choose-randomly locations))
        (all-locations (cons start-location locations))
        (location-edges (generate-location-edges all-locations))
-       (location-attributes (generate-location-attributes)))
+       (location-attributes (generate-location-attributes all-locations)))
     (game location-edges location-attributes start-location #f where-is-food)))
-
 
 (define (start-locations) (generate-random-locations base-edge-count))
 (define (choose-randomly locations) (random-element locations))
@@ -46,7 +46,8 @@
       (cons (f) (replicate-call (- count 1) f))
       '()))
 
-(define (generate-location-attributes) #f)
+(define (generate-location-attributes locations)
+  (eval (cons hash (skip locations '(location-attribute "it exists...")))))
 
 (define (intersperse element lst)
   (if (and (not (null? lst)) (not (null? (cdr lst))))
