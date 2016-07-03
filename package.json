@@ -1,0 +1,16 @@
+{
+  "name": "hack-adventure",
+  "version": "1.0.0",
+  "description": "hack-adventure, started at code craft",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jxv/hack-adventure.git"
+  },
+  "author": "jxv",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/jxv/hack-adventure/issues"
+  },
+  "homepage": "https://github.com/jxv/hack-adventure#readme"
+}
