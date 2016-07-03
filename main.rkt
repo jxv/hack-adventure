@@ -1,6 +1,12 @@
 #lang racket
 
 (require srfi/13)
+(require megaparsack)
+
+(define (main)
+  (begin
+    (define my-game (make-game))
+    (start-game my-game)))
 
 (struct game (location-edges location-attributes current-location has-food where-is-food))
 (struct location-attribute (info))
@@ -61,25 +67,52 @@
   (string-concatenate (intersperse " " (map show-location locations))))
 
 (define (nearby-locations game) #f)
-(define (loop game) #f)
 
-(define (start game)
+(define (loop-game game)
+  (let*
+      ([line (read-line)]
+       [cmd '('quit)])
+    (cond
+      ([(eq? (car cmd) 'act)
+        (let*
+            ([game-dids-pair (step-game game (cdr cmd))]
+             [dones (play-dids (cdr game-dids-pair))])
+          (if (eval (cons 'and dones))
+              (void)
+              (loop-game (car game-dids-pair))))]
+       [(eq? (car cmd) 'quit)
+        (display "bye!")]))
+    (void)))
+
+(define (step-game game act)
+  (let
+      ([nearbys (nearby-locations game)]
+       [loc (cdr act)])
+    (if (member loc nearbys)
+        (move game loc)
+        (cons game '([cons 'did-log "you can't go that way"])))))
+
+(define (play-dids dids) #f)
+
+(define (move game location) #f)
+
+(define (start-game game)
   (begin
     (display "you're in the basement. find food and come back!\n")
     (display (string-concatenate (list "nearby locations: " (show-locations (nearby-locations game)))))
-    (loop game)))
+    (loop-game game)))
 
 (define (generate-random-locations count)
   (let*
-      ((locations (generate-locations))
-       (locations-length (length locations)))
+      ([locations (generate-locations)]
+       [locations-length (length locations)])
     (if (> count locations-length)
         (append locations (generate-random-locations (- count locations-length)))
         (take locations count))))
 
 (define (generate-locations)
-  (let* ((location-length (min (length location-adjectives) (length location-nouns)))
-         (take-some (lambda (lst) (take (shuffle lst) location-length))))
+  (let* ([location-length (min (length location-adjectives) (length location-nouns))]
+         [take-some (lambda (lst) (take (shuffle lst) location-length))])
     (map (lambda (adjective noun) (string-concatenate (list adjective "-" noun)))
        (take-some location-adjectives)
        (take-some location-nouns))))
