@@ -61,7 +61,7 @@
             (cons element (intersperse element (cdr lst))))
       lst))
 
-(define (show-location location) #f)
+(define (show-location location) location)
 
 (define (show-locations locations)
   (string-concatenate (intersperse " " (map show-location locations))))
@@ -76,7 +76,7 @@
       ([(eq? (car cmd) 'act)
         (let*
             ([game-dids-pair (step-game game (cdr cmd))]
-             [dones (play-dids (cdr game-dids-pair))])
+             [dones (map play-did (cdr game-dids-pair))])
           (if (eval (cons 'and dones))
               (void)
               (loop-game (car game-dids-pair))))]
@@ -90,9 +90,16 @@
        [loc (cdr act)])
     (if (member loc nearbys)
         (move game loc)
-        (cons game '([cons 'did-log "you can't go that way"])))))
+        (cons game '([cons 'log "you can't go that way"])))))
 
-(define (play-dids dids) #f)
+(define (play-did did)
+  (let
+      ([tag (car did)]
+       [datum (cdr did)])
+    (cond
+      ([(eq? tag 'log) (begin (display datum) #f)]
+       [(eq? tag 'died) (begin (display "you died.") (display datum) #t)]
+       [(eq? tag 'win) (begin (display "you win!.") (display datum) #t)]))))
 
 (define (move game location) #f)
 
