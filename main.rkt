@@ -30,7 +30,7 @@
   (let*
       ((random-pair (lambda () (cons (random-element locations) (random-element locations))))
        (pairs (replicate-call (* 2 base-edge-count) random-pair))
-       (empty-edges (eval (cons hash (skip locations ''())))))
+       (empty-edges (apply hash (skip locations ''()))))
     (foldr (lambda (indices edges) (link (car indices)
                                          (cdr indices)
                                          edges))
@@ -53,7 +53,7 @@
       '()))
 
 (define (generate-location-attributes locations)
-  (eval (cons hash (skip locations '(location-attribute "it exists...")))))
+  (apply hash (skip locations '(location-attribute "it exists..."))))
 
 (define (intersperse element lst)
   (if (and (not (null? lst)) (not (null? (cdr lst))))
@@ -68,6 +68,8 @@
 
 (define (nearby-locations game) #f)
 
+(define (and-list lst) (foldr (lambda (x y) (and x y)) #t lst))
+
 (define (loop-game game)
   (let*
       ([line (read-line)]
@@ -77,7 +79,7 @@
         (let*
             ([game-dids-pair (step-game game (cdr cmd))]
              [dones (map play-did (cdr game-dids-pair))])
-          (if (eval (cons 'and dones))
+          (if (and-list dones)
               (void)
               (loop-game (car game-dids-pair))))]
        [(eq? (car cmd) 'quit)
